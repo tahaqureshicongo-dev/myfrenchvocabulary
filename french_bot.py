@@ -7,7 +7,7 @@ import time
 import requests
 from telegram import Bot
 
-# Render Port Binding to pass Health Check
+# Render Port Binding for Health Check
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -19,13 +19,13 @@ def run_server():
     server = HTTPServer(('0.0.0.0', port), SimpleHTTPRequestHandler)
     server.serve_forever()
 
-# Start HTTP Web Server in Background
+# Background HTTP Server for Render Health Check
 threading.Thread(target=run_server, daemon=True).start()
 
 TOKEN = "8952477275:AAHde9By_daqvVvXgmAai5np-6LreGywpWs"
 CHAT_ID = "7690989029"
+RENDER_URL = "https://myfrenchvocabulary.onrender.com"
 
-# Internet se random daily French word fetch karne ka function
 def get_random_french_word():
     import random
     auto_words = [
@@ -67,13 +67,26 @@ async def send_word():
 def job():
     asyncio.run(send_word())
 
-# 1. DEPLOY TEST: Server start hote hi turant pehla message bhejega
-job()
-
-# 2. TIMER: Iss ke baad har 1 ghante me automatic bhejega
+# Har 1 ghante mein automatic word bhejne ka schedule
 schedule.every(1).hours.do(job)
 
+# SELF-PING FUNCTION: Render ko sleep mode se bachane ke liye
+def keep_alive():
+    while True:
+        time.sleep(600)  # Har 10 minute baad chalega
+        try:
+            requests.get(RENDER_URL, timeout=10)
+            print("Self-ping successful! Server kept awake.")
+        except Exception as e:
+            print(f"Self-ping failed: {e}")
+
+# Background Thread mein Self-Ping start karna
+threading.Thread(target=keep_alive, daemon=True).start()
+
 print("Automated French Vocab Bot active ho gaya hai...")
+
+# Initial test execution (Deploy hotay hi test message bhejega)
+job()
 
 while True:
     schedule.run_pending()
