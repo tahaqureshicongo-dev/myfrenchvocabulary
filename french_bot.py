@@ -164,25 +164,39 @@ def fetch_live_word():
 # 6. MAIN PICKER
 # ==========================================
 def get_unique_word():
-    for _ in range(3):
+    # 1. Pehle API try karo (5 baar)
+    for _ in range(5):
         item = fetch_live_word()
         if item and item["word"].lower() not in SENT_WORDS:
             SENT_WORDS.add(item["word"].lower())
             save_sent_words(SENT_WORDS)
             return item["word"], item["meaning"], item["example"]
 
+    # 2. Bundled list se try karo (jo abhi tak nahi bheje)
     remaining = [w for w in VOCAB_DATABASE
                  if w["word"].lower() not in SENT_WORDS]
 
-    if not remaining:
-        print("[INFO] All words exhausted, resetting history...")
-        SENT_WORDS.clear()
+    if remaining:
+        item = random.choice(remaining)
+        SENT_WORDS.add(item["word"].lower())
         save_sent_words(SENT_WORDS)
-        remaining = VOCAB_DATABASE
+        return item["word"], item["meaning"], item["example"]
 
-    item = random.choice(remaining)
-    SENT_WORDS.add(item["word"].lower())
-    save_sent_words(SENT_WORDS)
+    # 3. ⚠️ SAB KUCH KHATAM — ab HISTORY MAT MITAO!
+    # API ko phir try karo (15 baar) naya word nikalne ke liye
+    print("[INFO] All local words sent. Retrying API harder...")
+    for _ in range(15):
+        item = fetch_live_word()
+        if item:
+            SENT_WORDS.add(item["word"].lower())
+            save_sent_words(SENT_WORDS)
+            return item["word"], item["meaning"], item["example"]
+        time.sleep(1)
+
+    # 4. Ab bhi kuch nahi mila toh bundled se repeat karo
+    #    (lekin history safe rahegi — clear NAHI karega)
+    print("[WARN] Reusing a bundled word as last resort.")
+    item = random.choice(VOCAB_DATABASE)
     return item["word"], item["meaning"], item["example"]
 
 # ==========================================
